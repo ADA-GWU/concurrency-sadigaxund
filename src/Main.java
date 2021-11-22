@@ -1,4 +1,5 @@
 import java.awt.Color;
+import java.awt.EventQueue;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -37,6 +38,7 @@ public class Main {
     static BufferedImage image;
     static int size;
     static boolean isMultiThreaded;
+    static Window frame;
 
     public static void main(String[] args) throws IOException {
 
@@ -50,42 +52,40 @@ public class Main {
 	} catch (ArrayIndexOutOfBoundsException e) {
 	    printError(); // TODO: Maybe specify: Not enough arguments
 	}
+	startWindow();
+	boxBlur(image);
 
-	boxBlur();
     }
 
-    static void boxBlur() {
+    static BufferedImage boxBlur(BufferedImage image) {
 
 	/* remove remainder from division and resize */
 	int width = size * (image.getWidth() / size);
 	int height = size * (image.getHeight() / size);
-	image = resize(image, width, height);
+
+	image = Util.resize(image, width, height);
+	frame.setLabelIcon(image); // display the image
 
 	/* procces the image */
-	for (int row = 0; row < width; row++)
+	for (int row = 0; row < width; row++) {
 	    for (int col = 0; col < height; col += size) {
-		verticalBlur(row, col);
+		image = verticalBlur(image, row, col);
 	    }
-
-	for (int col = 0; col < height; col++)
-	    for (int row = 0; row < width; row += size) {
-		horizontalBlur(row, col);
-	    }
-
-	/* write the image */
-	File file = new File("./blurredImage.png");
-
-	try {
-	    ImageIO.write(image, "png", file);
-	} catch (IOException e) {
-	    e.printStackTrace();
+	    frame.setLabelIcon(image);
 	}
 
+	for (int col = 0; col < height; col++) {
+	    for (int row = 0; row < width; row += size) {
+		image = horizontalBlur(image, row, col);
+	    }
+	    frame.setLabelIcon(image);
+	}
+	return image;
     }
 
-    static void horizontalBlur(int xPixel, int yPixel) {
+    static BufferedImage horizontalBlur(BufferedImage image, int xPixel, int yPixel) {
 	// Total sum of pixels
-	LongColor sumColor = new LongColor(new Color(0, 0, 0));
+	Util.LongColor sumColor = new Util.LongColor(new Color(0, 0, 0));
 
 	// adding pixels
 	for (int i = xPixel; i < xPixel + size; i++) {
@@ -100,11 +100,12 @@ public class Main {
 	for (int i = xPixel; i < xPixel + size; i++)
 	    image.setRGB(i, yPixel, sumColor.getColor().getRGB());
 
+	return image;
     }
 
-    static void verticalBlur(int xPixel, int yPixel) {
+    static BufferedImage verticalBlur(BufferedImage image, int xPixel, int yPixel) {
 	// Total sum of pixels
-	LongColor sumColor = new LongColor(new Color(0, 0, 0));
+	Util.LongColor sumColor = new Util.LongColor(new Color(0, 0, 0));
 
 	// adding pixels
 	for (int i = yPixel; i < yPixel + size; i++) {
@@ -119,6 +120,31 @@ public class Main {
 	for (int i = yPixel; i < yPixel + size; i++)
 	    image.setRGB(xPixel, i, sumColor.getColor().getRGB());
 
+	return image;
+    }
+
+    static void startWindow() {
+	EventQueue.invokeLater(new Runnable() {
+	    public void run() {
+		try {
+		    frame = new Window();
+		    frame.setVisible(true);
+		} catch (Exception e) {
+		    e.printStackTrace();
+		}
+	    }
+	});
+    }
+
+    static void writeImage() {
+	/* write the image */
+	File file = new File("./blurredImage.png");
+
+	try {
+	    ImageIO.write(image, "png", file);
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
     }
 
     static void processMode(String args) {
@@ -164,53 +190,4 @@ public class Main {
 	System.exit(0);
     }
 
-    // AUX METHODS
-    static class LongColor {
-	long R;
-	long G;
-	long B;
-
-	public LongColor(Color c) {
-	    setColor(c);
-	}
-
-	public Color getColor() {
-	    return new Color((int) R, (int) G, (int) B);
-	}
-
-	public void setColor(Color c) {
-	    R = c.getRed();
-	    G = c.getGreen();
-	    B = c.getBlue();
-	}
-
-	public void add(Color c) {
-	    R += c.getRed();
-	    G += c.getGreen();
-	    B += c.getBlue();
-	}
-
-	public void div(int n) {
-	    R /= n;
-	    G /= n;
-	    B /= n;
-	}
-
-	@Override
-	public String toString() {
-	    return "(" + R + ", " + G + ", " + B + ")";
-	}
-
-    }
-
-    public static BufferedImage resize(BufferedImage img, int newW, int newH) {
-	Image tmp = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
-	BufferedImage dimg = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_ARGB);
-
-	Graphics2D g2d = dimg.createGraphics();
-	g2d.drawImage(tmp, 0, 0, null);
-	g2d.dispose();
-
-	return dimg;
-    }
 }
