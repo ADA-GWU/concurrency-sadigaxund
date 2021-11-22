@@ -1,3 +1,4 @@
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -38,6 +39,7 @@ public class Main {
     static boolean isMultiThreaded;
 
     public static void main(String[] args) throws IOException {
+
 	try {
 	    if (args[0].equals("help"))
 		printHelp();
@@ -82,21 +84,41 @@ public class Main {
     }
 
     static void horizontalBlur(int xPixel, int yPixel) {
-	long sum = 0;
+	// Total sum of pixels
+	LongColor sumColor = new LongColor(new Color(0, 0, 0));
+
+	// adding pixels
+	for (int i = xPixel; i < xPixel + size; i++) {
+	    Color rgb = new Color(image.getRGB(i, yPixel));
+	    sumColor.add(rgb);
+	}
+
+	// find average
+	sumColor.div(size);
+
+	// set pixels
 	for (int i = xPixel; i < xPixel + size; i++)
-	    sum += image.getRGB(i, yPixel);
-	sum /= size;
-	for (int i = xPixel; i < xPixel + size; i++)
-	    image.setRGB(i, yPixel, (int) sum);
+	    image.setRGB(i, yPixel, sumColor.getColor().getRGB());
+
     }
 
     static void verticalBlur(int xPixel, int yPixel) {
-	long sum = 0;
+	// Total sum of pixels
+	LongColor sumColor = new LongColor(new Color(0, 0, 0));
+
+	// adding pixels
+	for (int i = yPixel; i < yPixel + size; i++) {
+	    Color rgb = new Color(image.getRGB(xPixel, i));
+	    sumColor.add(rgb);
+	}
+
+	// find average
+	sumColor.div(size);
+
+	// set pixels
 	for (int i = yPixel; i < yPixel + size; i++)
-	    sum += image.getRGB(xPixel, i);
-	sum /= size;
-	for (int i = yPixel; i < yPixel + size; i++)
-	    image.setRGB(xPixel, i, (int) sum);
+	    image.setRGB(xPixel, i, sumColor.getColor().getRGB());
+
     }
 
     static void processMode(String args) {
@@ -143,6 +165,43 @@ public class Main {
     }
 
     // AUX METHODS
+    static class LongColor {
+	long R;
+	long G;
+	long B;
+
+	public LongColor(Color c) {
+	    setColor(c);
+	}
+
+	public Color getColor() {
+	    return new Color((int) R, (int) G, (int) B);
+	}
+
+	public void setColor(Color c) {
+	    R = c.getRed();
+	    G = c.getGreen();
+	    B = c.getBlue();
+	}
+
+	public void add(Color c) {
+	    R += c.getRed();
+	    G += c.getGreen();
+	    B += c.getBlue();
+	}
+
+	public void div(int n) {
+	    R /= n;
+	    G /= n;
+	    B /= n;
+	}
+
+	@Override
+	public String toString() {
+	    return "(" + R + ", " + G + ", " + B + ")";
+	}
+
+    }
 
     public static BufferedImage resize(BufferedImage img, int newW, int newH) {
 	Image tmp = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
