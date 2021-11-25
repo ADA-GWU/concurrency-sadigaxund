@@ -15,21 +15,9 @@
 
 
 
-## :tv: Demo
-Click <a href="https://www.youtube.com/watch?v=qZm8bn80-W8" target="_blank">here</a> to see Demonstration video on YouTube.  
-
-Here is an example image before processing:  
-![image](https://user-images.githubusercontent.com/48419889/139754171-21e28d22-a088-4906-98ab-fcef27813cee.png) 
-
-The image after processing:
-![image](https://user-images.githubusercontent.com/48419889/139754694-d4ddf726-f1b5-4f22-a909-6faa6d6a13ce.png)  
- 
-
-
-
 ## :wrench: How to run
 ```
-Usage: <program> [image] [size] [mode]  
+Usage: <program> [image] [size] [mode] {Options}
 
 Arguments:  
       image           The name of the graphic file of jpg format.  
@@ -43,6 +31,17 @@ Options:
 
 
 
+
+## :tv: Demo
+Click <a href="https://www.youtube.com/watch?v=qZm8bn80-W8" target="_blank">here</a> to see Demonstration video on YouTube.  
+
+### Here is an example image before processing:  
+![image](https://github.com/ADA-GWU/concurrency-sadigaxund/blob/main/demo/monalisa.jpg)  
+
+
+### The image after processing:  
+![image](https://github.com/ADA-GWU/concurrency-sadigaxund/blob/main/demo/result.jpg)  
+ 
 
 
 
