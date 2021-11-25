@@ -63,12 +63,24 @@ public class Blur {
      */
     static boolean isMultiThreaded;
 
+    /**
+     * Boolean that defines when to update the image, when true the image will be
+     * updated at the end of each block. <br>
+     * 
+     * Improves performance.
+     */
+    static boolean SNAPPING = true;
+
+    public static int DELAY = 5;
     public static final String STR_referToHelp = "\nType \"<program> help\" for the usage.\n";
     public static final String STR_HELP = "\nUsage: <program> [image] [size] [mode]\n" + // <br>
 	    "\nArguments:" + // <br>
 	    "\n\timage\t\tThe name of the graphic file of jpg format." + // <br>
 	    "\n\tsize\t\tThe side of the square for the averaging." + // <br>
-	    "\n\tmode\t\t'S' - single threaded and 'M' - multi threaded.";
+	    "\n\tmode\t\t'S' - single threaded and 'M' - multi threaded." +
+		"\n\nOptions:" +
+		"\n\tsnapping\tUpdate image after fully processing a block."+
+		"\n\t\t\tIt is enabled by default. Pass '0' to disable.";
 
     public static void main(String[] args) throws Exception {
 	Exception e = null;
@@ -81,12 +93,14 @@ public class Blur {
 	    parseImage(args[0]); // parse [image]
 	    parseSize(args[1]); // parse [size]
 	    parseMode(args[2]);// parse [mode]
+	    parseSnapping(args);
 
 	    // init program
 	    IProc = new ImageProcessor(SIZE);
-	    WINDOW = new Window();
+	    WINDOW = new Window(IMAGE, SIZE);
 	    WINDOW.setVisible(true);
-
+	    WINDOW.setImage(IMAGE);
+	    Thread.sleep(1000);
 	    // start procedure
 	    if (isMultiThreaded)
 		multiThreadedBlurring();
@@ -119,7 +133,6 @@ public class Blur {
      * @throws InterruptedException
      */
     static void multiThreadedBlurring() throws InterruptedException {
-
 	WINDOW.setImage(IMAGE); // display the image
 
 	/* Initialize Thread pool */
@@ -152,9 +165,11 @@ public class Blur {
 			for (int col = 0; col < height; col += SIZE)
 			    IMAGE = IProc.HBlur(IMAGE, row, col);
 
-			WINDOW.setImage(IMAGE); // update image
+			refresh(row); // update image
+			Thread.sleep(DELAY); // transition delay
 			row++;
 		    }
+		    WINDOW.repaint(); // apply the last changes
 		    return true;
 		}
 	    };
@@ -188,9 +203,11 @@ public class Blur {
 			for (int row = 0; row < width; row += SIZE)
 			    IMAGE = IProc.VBlur(IMAGE, row, col);
 
-			WINDOW.setImage(IMAGE); // update image
+			refresh(col); // update image
+			Thread.sleep(DELAY);
 			col++;
 		    }
+		    WINDOW.repaint(); // apply the last changes
 		    return true;
 		}
 	    };
@@ -218,8 +235,7 @@ public class Blur {
      * 
      * @throws InterruptedException
      */
-    static void singleThreadedBlurring() {
-
+    static void singleThreadedBlurring() throws InterruptedException {
 	WINDOW.setImage(IMAGE); // display the image
 
 	/* Dimensions of the image */
@@ -231,14 +247,16 @@ public class Blur {
 	    for (int col = 0; col < height; col += SIZE)
 		IMAGE = IProc.HBlur(IMAGE, row, col);
 
-	    WINDOW.setImage(IMAGE);
+	    refresh(row);
+	    Thread.sleep(DELAY); // transition delay
 	}
 	/* <--- BLUR VERTICALLY ---> */
 	for (int col = 0; col < height; col++) {
 	    for (int row = 0; row < width; row += SIZE)
 		IMAGE = IProc.VBlur(IMAGE, row, col);
 
-	    WINDOW.setImage(IMAGE);
+	    refresh(col);
+	    Thread.sleep(DELAY); // transition delay
 	}
     }
 
@@ -258,7 +276,6 @@ public class Blur {
      *                                       </ul>
      */
     static void parseMode(String args) throws InvalidParameterException {
-
 	switch (args) {
 	case "S":
 	    isMultiThreaded = false;
@@ -305,6 +322,37 @@ public class Blur {
 	    IMAGE = ImageIO.read(new File("./" + args));
 	} catch (IOException e) {
 	    throw new IOException("Could not process the given image file!");
+	}
+    }
+
+    /**
+     * Process the given arguments parameter that defines whether or not the
+     * snapping is enabled. <br>
+     * <b>Default:</b> Enabled
+     * 
+     * @param args
+     *                 Command-Line Arguments
+     */
+    static void parseSnapping(String[] args) {
+	if (args.length > 3 && args[3].equals("0")) {
+	    SNAPPING = false;
+	}
+    }
+
+    /**
+     * Method that updates images each time it is called. Need for optimization and
+     * snapping. When snapping is not enabled it will always update canvas whenever
+     * called. When snapping is disabled it will update each time the index is the
+     * multiple of block size.
+     * 
+     * @param iter
+     *                 the index of iteration
+     */
+    static void refresh(int iter) {
+	if (!SNAPPING) {
+	    WINDOW.setImage(IMAGE);
+	} else if (iter % SIZE == 0) {
+	    WINDOW.setImage(IMAGE);
 	}
     }
 

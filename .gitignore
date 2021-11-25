@@ -2,7 +2,11 @@
 .classpath
 .project
 .class
+<<<<<<< Updated upstream
 /.settings
+=======
+.settings
+>>>>>>> Stashed changes
 /.classpath
 /.project
 /.settings/

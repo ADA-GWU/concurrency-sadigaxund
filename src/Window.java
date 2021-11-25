@@ -42,11 +42,11 @@ public class Window extends JFrame {
     /**
      * The width and height of the window.
      */
-    public final Point RESOLUTION = new Point(800, 600);
+    public final Point MAX_RES = new Point(800, 600);
 
-    public Window() {
+    public Window(BufferedImage image, int blockSize) {
 	setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-	setBounds(0, 0, RESOLUTION.x, RESOLUTION.y);
+	setBounds(0, 0, image.getWidth() + blockSize, image.getHeight() + blockSize * 2);
 	setLocationRelativeTo(null);
 
 	contentPane = new JPanel();
@@ -56,15 +56,15 @@ public class Window extends JFrame {
 
 	imageLabel = new JLabel("");
 	contentPane.add(imageLabel, BorderLayout.CENTER);
+
     }
 
     public void setImage(BufferedImage image) {
-	/* Fit to screen */
-	image = ImageProcessor.resize(image, Math.min(image.getWidth(), RESOLUTION.x - 30),
-		Math.min(image.getHeight(), RESOLUTION.y - 30));
-
 	/* Update image on the window */
 	imageLabel.setIcon(new ImageIcon(image));
+    }
+
+    public void repaint() {
 	contentPane.repaint();
     }
 
