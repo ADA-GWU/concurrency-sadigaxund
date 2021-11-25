@@ -1,13 +1,4 @@
-import java.awt.BorderLayout;
-import java.awt.EventQueue;
-import java.awt.Point;
 import java.awt.image.BufferedImage;
-
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
-import javax.swing.JLabel;
-import javax.swing.ImageIcon;
 
 /***************************************************************************
  * MIT License
@@ -35,35 +26,54 @@ import javax.swing.ImageIcon;
  * 
  **************************************************************************/
 
-public class Window extends JFrame {
+public class ImageProcessor {
+    private int SIZE;
 
-    private static final long serialVersionUID = 1L;
-    private JPanel contentPane;
-    private JLabel imageLabel;
-    public final Point RESOLUTION = new Point(800, 600);
-
-    public Window() {
-	setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-	setBounds(0, 0, RESOLUTION.x, RESOLUTION.y);
-	setLocationRelativeTo(null);
-
-	contentPane = new JPanel();
-	contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-	contentPane.setLayout(new BorderLayout(0, 0));
-	setContentPane(contentPane);
-
-	imageLabel = new JLabel("");
-	contentPane.add(imageLabel, BorderLayout.CENTER);
+    public ImageProcessor(int SIZE) {
+	this.SIZE = SIZE;
     }
 
-    public void setImage(BufferedImage image) {
-	/* Fit to screen */
-	image = Util.resize(image, Math.min(image.getWidth(), RESOLUTION.x - 30),
-		Math.min(image.getHeight(), RESOLUTION.y - 30));
-	imageLabel.setIcon(new ImageIcon(image));
-	contentPane.repaint();
+    public BufferedImage VBlur(BufferedImage image, int xPixel, int yPixel) {
+	/* Total sum of pixels */
+	Util.LongColor averageColor = new Util.LongColor(0, 0, 0);
+
+	int len = Math.min(image.getWidth(), xPixel + SIZE);
+	// adding pixels
+	for (int i = xPixel; i < len; i++) {
+	    averageColor.add(image.getRGB(i, yPixel));
+	}
+
+	// find average
+	int divisor = Math.min(SIZE, image.getWidth() - xPixel);
+	averageColor.div(divisor);
+
+	// set pixels
+	for (int i = xPixel; i < len; i++) {
+	    image.setRGB(i, yPixel, averageColor.getRGB());
+	}
+	return image;
     }
 
-   
+    public BufferedImage HBlur(BufferedImage image, int xPixel, int yPixel) {
+	/* Total sum of pixels */
+	Util.LongColor averageColor = new Util.LongColor(0, 0, 0);
+
+	int len = Math.min(image.getHeight(), yPixel + SIZE);
+	// adding pixels
+	for (int i = yPixel; i < len; i++) {
+	    averageColor.add(image.getRGB(xPixel, i));
+	}
+
+	// find average
+	int divisor = Math.min(SIZE, image.getHeight() - yPixel);
+	averageColor.div(divisor);
+
+	// set pixels
+	for (int i = yPixel; i < len; i++) {
+	    image.setRGB(xPixel, i, averageColor.getRGB());
+	}
+
+	return image;
+    }
 
 }

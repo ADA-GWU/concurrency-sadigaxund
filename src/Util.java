@@ -55,18 +55,22 @@ public class Util {
 	long G;
 	long B;
 
+	public LongColor(int r, int g, int b) {
+	    setColor(r, g, b);
+	}
+
 	public LongColor(Color c) {
-	    setColor(c);
+	    setColor(c.getRed(), c.getGreen(), c.getBlue());
 	}
 
 	public Color getColor() {
 	    return new Color((int) R, (int) G, (int) B);
 	}
 
-	public void setColor(Color c) {
-	    R = c.getRed();
-	    G = c.getGreen();
-	    B = c.getBlue();
+	public void setColor(int r, int g, int b) {
+	    this.R = r;
+	    this.G = g;
+	    this.B = b;
 	}
 
 	public void add(Color c) {
@@ -75,10 +79,18 @@ public class Util {
 	    B += c.getBlue();
 	}
 
+	public void add(int rgb) {
+	    add(new Color(rgb));
+	}
+
 	public void div(int n) {
 	    R /= n;
 	    G /= n;
 	    B /= n;
+	}
+
+	public int getRGB() {
+	    return new Color((int) R, (int) G, (int) B).getRGB();
 	}
 
 	@Override

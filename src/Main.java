@@ -5,6 +5,18 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.imageio.ImageIO;
 
 /***************************************************************************
@@ -34,120 +46,160 @@ import javax.imageio.ImageIO;
  **************************************************************************/
 
 public class Main {
-
-    static BufferedImage image;
-    static int size;
+    static Window WINDOW;
+    static BufferedImage IMAGE;
+    static int SIZE;
     static boolean isMultiThreaded;
-    static Window frame;
+    static ImageProcessor IProc;
 
-    public static void main(String[] args) throws IOException {
+    public static final String STR_referToHelp = "Type \"java <classname> -help\" for the usage.\n ;";
 
+    public static void main(String[] args) throws Exception {
+	Exception e = null;
 	try {
-	    if (args[0].equals("help"))
-		printHelp();
+	    // if (args[0].equals("help"))
+	    // printHelp();
+	    // processImage(args[0]);
+	    // processSize(args[1]);
+	    // processMode(args[2]);
+	    IMAGE = ImageIO.read(new File("image.jpg"));
+	    SIZE = 33;
+	    isMultiThreaded = true;
 
-	    processImage(args[0]);
-	    processSize(args[1]);
-	    processMode(args[2]);
-	} catch (ArrayIndexOutOfBoundsException e) {
-	    printError(); // TODO: Maybe specify: Not enough arguments
+	    IProc = new ImageProcessor(SIZE);
+	    startWindow();
+	    if (isMultiThreaded)
+		multiThreadedBlurring();
+	    else
+		singleThreadedBlurring();
+	} catch (ArrayIndexOutOfBoundsException ex) {
+	    e = new ArrayIndexOutOfBoundsException("Not enough arguements were given. " + STR_referToHelp);
+	} catch (Exception ex) {
+	    e = ex;
+	} finally {
+	    if (e != null)
+		e.printStackTrace();
 	}
-	startWindow();
-	boxBlur(image);
 
     }
 
-    static BufferedImage boxBlur(BufferedImage image) {
+    static BufferedImage multiThreadedBlurring() throws InterruptedException {
+
+	int processors = Runtime.getRuntime().availableProcessors();
+	ExecutorService threadPool = Executors.newFixedThreadPool(processors);
 
 	/* remove remainder from division and resize */
-	int width = size * (image.getWidth() / size);
-	int height = size * (image.getHeight() / size);
+	int width = IMAGE.getWidth();
+	int height = IMAGE.getHeight();
 
-	image = Util.resize(image, width, height);
-	frame.setLabelIcon(image); // display the image
+	IMAGE = Util.resize(IMAGE, width, height);
+	WINDOW.setImage(IMAGE); // display the image
+
+	/*** save the lazy evaluation to the threads to execute them later ***/
+	/* <--- BLUR HORIZONTALLY ---> */
+	List<BlurThread> futureList = new ArrayList<BlurThread>();
+
+	for (int i = 0; i < processors; i++) {
+	    BlurThread bt = new BlurThread(i) {
+		public Boolean call() throws Exception {
+		    int row = (width / processors + 1) * index;
+		    int len = Math.min(width, (width / processors + 1) * (index + 1));
+
+		    for (; row < len; row++) {
+			for (int col = 0; col < height; col += SIZE) {
+			    IMAGE = IProc.HBlur(IMAGE, row, col);
+			}
+			WINDOW.setImage(IMAGE);
+		    }
+		    return true;
+		};
+	    };
+	    futureList.add(bt);
+	}
+
+	/* Wait until the image was blurred horizontally */
+	try {
+	    threadPool.invokeAll(futureList);
+	} catch (Exception err) {
+	    err.printStackTrace();
+	} finally {
+	    futureList.clear();
+	}
+
+	/* <--- BLUR VERTICALLY ---> */
+	for (int i = 0; i < processors; i++) {
+	    BlurThread bt = new BlurThread(i) {
+		public Boolean call() throws Exception {
+		    int col = (height / processors + 1) * index;
+		    int len = Math.min(height, (height / processors + 1) * (index + 1));
+		    for (; col < len; col++) {
+			for (int row = 0; row < width; row += SIZE) {
+			    IMAGE = IProc.VBlur(IMAGE, row, col);
+			}
+			WINDOW.setImage(IMAGE);
+		    }
+		    return true;
+		};
+	    };
+	    futureList.add(bt);
+	}
+	try {
+	    threadPool.invokeAll(futureList);
+	} catch (Exception err) {
+	    err.printStackTrace();
+	} finally {
+	    futureList.clear();
+	}
+	return IMAGE;
+
+    }
+
+    static BufferedImage singleThreadedBlurring() {
+
+	/* remove remainder from division and resize */
+	int width = IMAGE.getWidth();
+	int height = IMAGE.getHeight();
+
+	IMAGE = Util.resize(IMAGE, width, height);
+	WINDOW.setImage(IMAGE); // display the image
 
 	/* procces the image */
 	for (int row = 0; row < width; row++) {
-	    for (int col = 0; col < height; col += size) {
-		image = verticalBlur(image, row, col);
+	    for (int col = 0; col < height; col += SIZE) {
+		IMAGE = IProc.HBlur(IMAGE, row, col);
 	    }
-	    frame.setLabelIcon(image);
+	    WINDOW.setImage(IMAGE);
 	}
 
 	for (int col = 0; col < height; col++) {
-	    for (int row = 0; row < width; row += size) {
-		image = horizontalBlur(image, row, col);
+	    for (int row = 0; row < width; row += SIZE) {
+		IMAGE = IProc.VBlur(IMAGE, row, col);
 	    }
-	    frame.setLabelIcon(image);
+	    WINDOW.setImage(IMAGE);
 	}
-	return image;
+	return IMAGE;
     }
 
-    static BufferedImage horizontalBlur(BufferedImage image, int xPixel, int yPixel) {
-	// Total sum of pixels
-	Util.LongColor sumColor = new Util.LongColor(new Color(0, 0, 0));
-
-	// adding pixels
-	for (int i = xPixel; i < xPixel + size; i++) {
-	    Color rgb = new Color(image.getRGB(i, yPixel));
-	    sumColor.add(rgb);
-	}
-
-	// find average
-	sumColor.div(size);
-
-	// set pixels
-	for (int i = xPixel; i < xPixel + size; i++)
-	    image.setRGB(i, yPixel, sumColor.getColor().getRGB());
-
-	return image;
-    }
-
-    static BufferedImage verticalBlur(BufferedImage image, int xPixel, int yPixel) {
-	// Total sum of pixels
-	Util.LongColor sumColor = new Util.LongColor(new Color(0, 0, 0));
-
-	// adding pixels
-	for (int i = yPixel; i < yPixel + size; i++) {
-	    Color rgb = new Color(image.getRGB(xPixel, i));
-	    sumColor.add(rgb);
-	}
-
-	// find average
-	sumColor.div(size);
-
-	// set pixels
-	for (int i = yPixel; i < yPixel + size; i++)
-	    image.setRGB(xPixel, i, sumColor.getColor().getRGB());
-
-	return image;
-    }
-
-    static void startWindow() {
-	EventQueue.invokeLater(new Runnable() {
-	    public void run() {
-		try {
-		    frame = new Window();
-		    frame.setVisible(true);
-		} catch (Exception e) {
-		    e.printStackTrace();
-		}
-	    }
-	});
-    }
-
-    static void writeImage() {
-	/* write the image */
-	File file = new File("./blurredImage.png");
-
+    static void startWindow() throws Exception {
 	try {
-	    ImageIO.write(image, "png", file);
-	} catch (IOException e) {
-	    e.printStackTrace();
+	    WINDOW = new Window();
+	    WINDOW.setVisible(true);
+	} catch (Exception e) {
+	    throw new Exception("Could not open the window!");
 	}
     }
 
-    static void processMode(String args) {
+    static void writeImage() throws IOException {
+	/* write the image */
+	try {
+	    File file = new File("./blurredImage.png");
+	    ImageIO.write(IMAGE, "png", file);
+	} catch (IOException e) {
+	    throw new IOException("Image was not saved successfully!");
+	}
+    }
+
+    static void processMode(String args) throws IOException {
 
 	switch (args) {
 	case "S":
@@ -157,27 +209,23 @@ public class Main {
 	    isMultiThreaded = true;
 	    break;
 	default:
-	    System.out.println("MODE!!!");
-	    printError(); // TODO: Maybe specify: Unidentified mode type
-	    break;
+	    throw new IOException("Entered Thread mode is not identified. " + STR_referToHelp);
 	}
     }
 
-    static void processSize(String args) {
+    static void processSize(String args) throws NumberFormatException {
 	try {
-	    size = Integer.parseInt(args);
-	} catch (NumberFormatException nfe) {
-	    System.out.println("SIZE!!!");
-	    printError(); // TODO: Maybe specify: Numeric error
+	    SIZE = Integer.parseInt(args);
+	} catch (NumberFormatException e) {
+	    throw new NumberFormatException("The size of the blur blocks is in invalid format. " + STR_referToHelp);
 	}
     }
 
-    static void processImage(String args) {
+    static void processImage(String args) throws IOException {
 	try {
-	    image = ImageIO.read(new File("./" + args));
+	    IMAGE = ImageIO.read(new File("./" + args));
 	} catch (IOException e) {
-	    System.out.println("IMAGE!!!:" + args);
-	    printError(); // TODO: Maybe specify: IO error
+	    throw new IOException("Could not process the given image file!");
 	}
     }
 
@@ -190,4 +238,18 @@ public class Main {
 	System.exit(0);
     }
 
+    static class BlurThread implements Callable<Boolean> {
+	int index;
+
+	public BlurThread(int index) {
+	    this.index = index;
+	}
+
+	@Override
+	public Boolean call() throws Exception {
+	    // TODO Auto-generated method stub
+	    return null;
+	}
+
+    }
 }
