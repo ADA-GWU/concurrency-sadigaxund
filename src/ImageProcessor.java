@@ -1,4 +1,10 @@
+import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
 
 /***************************************************************************
  * MIT License
@@ -27,16 +33,42 @@ import java.awt.image.BufferedImage;
  **************************************************************************/
 
 public class ImageProcessor {
+    /**
+     * The size of the blurring block
+     */
     private int SIZE;
 
     public ImageProcessor(int SIZE) {
 	this.SIZE = SIZE;
     }
 
+    /**
+     * <h1>Vertical Blur</h1> Method that blurs a block of the image from given
+     * range. In mathematical term the range is in the following form:<br>
+     * <code>[x, x] & [y, y + SIZE)</code>
+     * <ul>
+     * <li><b>x</b> stands for <code>xPixel</code></li>
+     * <li><b>y</b> stands for <code>yPixel</code></li>
+     * </ul>
+     * 
+     * 
+     * @param image
+     *                   the given image to blur a block from
+     * @param xPixel
+     *                   starting coordinate on the x-axis.
+     * @param yPixel
+     *                   starting coordinate on the y-axis.
+     * @return partially blurred version of the image
+     */
     public BufferedImage VBlur(BufferedImage image, int xPixel, int yPixel) {
 	/* Total sum of pixels */
-	Util.LongColor averageColor = new Util.LongColor(0, 0, 0);
-
+	LongColor averageColor = new LongColor(0, 0, 0);
+	/***
+	 * IMPORTANT: Since the dimensions of the image is not limited, they can
+	 * sometimes be divided by the <b>size of block</b> unevenly, with remainder. In
+	 * order to avoid <code>ArrayIndexOutOfBoundsException</code> we take minimum
+	 * between the given range and the max possible index.
+	 ***/
 	int len = Math.min(image.getWidth(), xPixel + SIZE);
 	// adding pixels
 	for (int i = xPixel; i < len; i++) {
@@ -54,10 +86,33 @@ public class ImageProcessor {
 	return image;
     }
 
+    /**
+     * <h1>Vertical Blur</h1> Method that blurs a block of the image from given
+     * range. In mathematical term the range is in the following form:<br>
+     * <code>[x, x + SIZE) & [y, y]</code>
+     * <ul>
+     * <li><b>x</b> stands for <code>xPixel</code></li>
+     * <li><b>y</b> stands for <code>yPixel</code></li>
+     * </ul>
+     * 
+     * 
+     * @param image
+     *                   the given image to blur a block from
+     * @param xPixel
+     *                   starting coordinate on the x-axis.
+     * @param yPixel
+     *                   starting coordinate on the y-axis.
+     * @return partially blurred version of the image
+     */
     public BufferedImage HBlur(BufferedImage image, int xPixel, int yPixel) {
 	/* Total sum of pixels */
-	Util.LongColor averageColor = new Util.LongColor(0, 0, 0);
-
+	LongColor averageColor = new LongColor(0, 0, 0);
+	/***
+	 * IMPORTANT: Since the dimensions of the image is not limited, they can
+	 * sometimes be divided by the <b>size of block</b> unevenly, with remainder. In
+	 * order to avoid <code>ArrayIndexOutOfBoundsException</code> we take minimum
+	 * between the given range and the max possible index.
+	 ***/
 	int len = Math.min(image.getHeight(), yPixel + SIZE);
 	// adding pixels
 	for (int i = yPixel; i < len; i++) {
@@ -76,4 +131,47 @@ public class ImageProcessor {
 	return image;
     }
 
+    /**
+     * The method used to save the given image to the file in jpg format
+     * 
+     * @param image
+     *                  the source of Image to be written
+     * @param out
+     *                  output path to which the image is going to be saved
+     * @throws IOException
+     *                         If the saving was unsuccessful the following message
+     *                         is printed:<br>
+     *                         <code>"Image was not saved successfully!"</code>
+     */
+    public static void writeImage(BufferedImage image, String out) throws IOException {
+	/* write the image */
+	try {
+	    File file = new File("./" + out);
+	    ImageIO.write(image, "jpg", file);
+	} catch (IOException e) {
+	    throw new IOException("Image was not saved successfully!");
+	}
+    }
+
+    /**
+     * The method is used to resize a given image
+     * 
+     * @param image
+     *                      an image to be resized
+     * @param newWidth
+     *                      desired width of an image
+     * @param newHeight
+     *                      desired height of an image
+     * @return a resized image
+     */
+    public static BufferedImage resize(BufferedImage image, int newWidth, int newHeight) {
+	Image tmp = image.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH);
+	BufferedImage newImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+
+	Graphics2D g2d = newImage.createGraphics();
+	g2d.drawImage(tmp, 0, 0, null);
+	g2d.dispose();
+
+	return newImage;
+    }
 }

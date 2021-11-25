@@ -1,5 +1,4 @@
 import java.awt.BorderLayout;
-import java.awt.EventQueue;
 import java.awt.Point;
 import java.awt.image.BufferedImage;
 
@@ -40,6 +39,9 @@ public class Window extends JFrame {
     private static final long serialVersionUID = 1L;
     private JPanel contentPane;
     private JLabel imageLabel;
+    /**
+     * The width and height of the window.
+     */
     public final Point RESOLUTION = new Point(800, 600);
 
     public Window() {
@@ -58,12 +60,12 @@ public class Window extends JFrame {
 
     public void setImage(BufferedImage image) {
 	/* Fit to screen */
-	image = Util.resize(image, Math.min(image.getWidth(), RESOLUTION.x - 30),
+	image = ImageProcessor.resize(image, Math.min(image.getWidth(), RESOLUTION.x - 30),
 		Math.min(image.getHeight(), RESOLUTION.y - 30));
+
+	/* Update image on the window */
 	imageLabel.setIcon(new ImageIcon(image));
 	contentPane.repaint();
     }
-
-   
 
 }
