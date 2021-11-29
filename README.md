@@ -35,7 +35,7 @@ Options:
 ## :tv: Demo
 Click <a href="https://www.youtube.com/watch?v=qZm8bn80-W8" target="_blank">here</a> to see Demonstration video on YouTube.  
 
-### Here is an example image before processing:  
+### Here is an example of an image before processing:  
 ![image](https://github.com/ADA-GWU/concurrency-sadigaxund/blob/main/demo/monalisa.jpg)  
 
 
