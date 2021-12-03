@@ -1,3 +1,4 @@
+import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -164,9 +165,9 @@ public class ImageProcessor {
      *                      desired height of an image
      * @return a resized image
      */
-    public static BufferedImage resize(BufferedImage image, int newWidth, int newHeight) {
-	Image tmp = image.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH);
-	BufferedImage newImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+    public static BufferedImage resize(BufferedImage image, Dimension newSize) {
+	Image tmp = image.getScaledInstance(newSize.width, newSize.height, Image.SCALE_SMOOTH);
+	BufferedImage newImage = new BufferedImage(newSize.width, newSize.height, BufferedImage.TYPE_INT_ARGB);
 
 	Graphics2D g2d = newImage.createGraphics();
 	g2d.drawImage(tmp, 0, 0, null);
@@ -174,4 +175,21 @@ public class ImageProcessor {
 
 	return newImage;
     }
+
+    /**
+     * 
+     * Function to return the new size depending on the boundary.
+     * 
+     * @param imageRes
+     * @param screenRes
+     * @return scaled version of an image while maintaining the aspect ratio
+     */
+    public static BufferedImage scale(BufferedImage image, Dimension screenRes) {
+	double widthRatio = screenRes.getWidth() / image.getWidth();
+	double heightRatio = screenRes.getHeight() / image.getHeight();
+	double ratio = Math.min(widthRatio, heightRatio);
+	Dimension newDimension = new Dimension((int) (image.getWidth() * ratio), (int) (image.getHeight() * ratio));
+	return resize(image, newDimension);
+    }
+
 }

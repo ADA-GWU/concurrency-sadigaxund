@@ -1,5 +1,6 @@
 import java.awt.BorderLayout;
-import java.awt.Point;
+import java.awt.Dimension;
+import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 
 import javax.swing.JFrame;
@@ -37,35 +38,52 @@ import javax.swing.ImageIcon;
 public class Window extends JFrame {
 
     private static final long serialVersionUID = 1L;
-    private JPanel contentPane;
-    private JLabel imageLabel;
+    /** Frame, Canvas */
+    private JPanel CANVAS;
     /**
-     * The width and height of the window.
+     * Container for the image as <code>JLabel</code>
      */
-    public final Point MAX_RES = new Point(800, 600);
+    private JLabel IMAGE_LABEL;
+    /**
+     * The width and height of the screen.
+     */
+    public final Dimension RESOLUTION;
 
     public Window(BufferedImage image, int blockSize) {
+	/* DEFINE IMAGE RESOLUTION */
+	Dimension screenRes = Toolkit.getDefaultToolkit().getScreenSize(); // get screen resolution
+	int w = (int) (screenRes.width * 0.8), h = (int) (screenRes.height * 0.8);
+	screenRes = new Dimension(w, h); // adjust
+	image = ImageProcessor.scale(image, screenRes); // fit to screen
+	RESOLUTION = new Dimension(image.getWidth(), image.getHeight()); // save size for later
+
+	/* INITIALIZE JFRAME */
 	setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-	setBounds(0, 0, image.getWidth() + blockSize, image.getHeight() + blockSize * 2);
+	setBounds(0, 0, RESOLUTION.width + 25, RESOLUTION.height + 50);
 	setLocationRelativeTo(null);
+	setTitle("Image blurring program");
 
-	contentPane = new JPanel();
-	contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-	contentPane.setLayout(new BorderLayout(0, 0));
-	setContentPane(contentPane);
+	CANVAS = new JPanel();
+	CANVAS.setBorder(new EmptyBorder(5, 5, 5, 5));
+	CANVAS.setLayout(new BorderLayout(0, 0));
+	setContentPane(CANVAS);
 
-	imageLabel = new JLabel("");
-	contentPane.add(imageLabel, BorderLayout.CENTER);
+	/* CREATE IMAGE HOLDER */
+	IMAGE_LABEL = new JLabel("");
+	IMAGE_LABEL.setIcon(new ImageIcon(image)); // display the original image
+	/* ADD IMAGE TO THE CANVAS */
+	CANVAS.add(IMAGE_LABEL, BorderLayout.CENTER);
 
     }
 
     public void setImage(BufferedImage image) {
 	/* Update image on the window */
-	imageLabel.setIcon(new ImageIcon(image));
+	image = ImageProcessor.resize(image, RESOLUTION); // fit to screen
+	IMAGE_LABEL.setIcon(new ImageIcon(image));
     }
 
     public void repaint() {
-	contentPane.repaint();
+	CANVAS.repaint();
     }
 
 }

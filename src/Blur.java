@@ -77,15 +77,14 @@ public class Blur {
 	    "\nArguments:" + // <br>
 	    "\n\timage\t\tThe name of the graphic file of jpg format." + // <br>
 	    "\n\tsize\t\tThe side of the square for the averaging." + // <br>
-	    "\n\tmode\t\t'S' - single threaded and 'M' - multi threaded." +
-		"\n\nOptions:" +
-		"\n\tsnapping\tUpdate image after fully processing a block."+
-		"\n\t\t\tIt is enabled by default. Pass '0' to disable.";
+	    "\n\tmode\t\t'S' - single threaded and 'M' - multi threaded." + "\n\nOptions:"
+	    + "\n\tsnapping\tUpdate image after fully processing a block."
+	    + "\n\t\t\tIt is enabled by default. Pass '0' to disable.";
 
-    public static void main(String[] args) throws Exception {
-	Exception e = null;
+    public static void main(String[] args) {
+	String errorMessage = "Blurring finished successfully!";
 	try {
-	    // parsing
+	    // arguments parsing
 	    if (args[0].contains("help")) { // parse help
 		System.out.println(STR_HELP);
 		return;
@@ -109,13 +108,12 @@ public class Blur {
 
 	    // save processed image
 	    ImageProcessor.writeImage(IMAGE, "result.jpg");
-	} catch (ArrayIndexOutOfBoundsException ex) {
-	    e = new ArrayIndexOutOfBoundsException("Not enough arguments were given. " + STR_referToHelp);
-	} catch (Exception ex) {
-	    e = ex;
+	} catch (ArrayIndexOutOfBoundsException e) {
+	    errorMessage = "Not enough arguments were given. " + STR_referToHelp;
+	} catch (Exception e) {
+	    errorMessage = e.getMessage();
 	} finally {
-	    if (e != null)
-		System.out.println(e.getMessage());
+	    System.err.println(errorMessage);
 	}
 
     }
@@ -133,8 +131,6 @@ public class Blur {
      * @throws InterruptedException
      */
     static void multiThreadedBlurring() throws InterruptedException {
-	WINDOW.setImage(IMAGE); // display the image
-
 	/* Initialize Thread pool */
 	int processors = Runtime.getRuntime().availableProcessors(); // No. of processors
 	ExecutorService threadPool = Executors.newFixedThreadPool(processors);
@@ -146,7 +142,7 @@ public class Blur {
 	/* save the lazy evaluation to the threads to execute them later */
 	List<BlurThread> futureList = new ArrayList<BlurThread>();
 
-	/* <--- BLUR HORIZONTALLY ---> */
+	/* <-------------- BLUR HORIZONTALLY --------------> */
 	for (int i = 0; i < processors; i++) {
 
 	    BlurThread bt = new BlurThread(i) {
@@ -161,13 +157,12 @@ public class Blur {
 		     ***/
 		    int len = Math.min(width, (width / processors + 1) * (index + 1));
 
-		    while (row < len) {
-			for (int col = 0; col < height; col += SIZE)
+		    for (; row < len; row++) {
+			for (int col = 0; col < height; col += SIZE) {
 			    IMAGE = IProc.HBlur(IMAGE, row, col);
-
+			}
 			refresh(row); // update image
 			Thread.sleep(DELAY); // transition delay
-			row++;
 		    }
 		    WINDOW.repaint(); // apply the last changes
 		    return true;
@@ -181,12 +176,13 @@ public class Blur {
 	try {
 	    threadPool.invokeAll(futureList); // activate threads
 	} catch (Exception err) {
-	    err.printStackTrace();
+	    throw new InterruptedException("Thread which blurs the image has been interrupted!");
 	} finally {
+	    WINDOW.repaint();
 	    futureList.clear();
 	}
 
-	/* <--- BLUR VERTICALLY ---> */
+	/* <-------------- BLUR VERTICALLY --------------> */
 	for (int i = 0; i < processors; i++) {
 	    BlurThread bt = new BlurThread(i) {
 		public Boolean call() throws Exception {
@@ -199,25 +195,26 @@ public class Blur {
 		     * between the given range and the max possible index.
 		     ***/
 		    int len = Math.min(height, (height / processors + 1) * (index + 1));
-		    while (col < len) {
-			for (int row = 0; row < width; row += SIZE)
+		    for (; col < len; col++) {
+			for (int row = 0; row < width; row += SIZE) {
 			    IMAGE = IProc.VBlur(IMAGE, row, col);
-
-			refresh(col); // update image
-			Thread.sleep(DELAY);
-			col++;
+			}
+			refresh(col);// update image
+			Thread.sleep(DELAY); // transition delay
 		    }
 		    WINDOW.repaint(); // apply the last changes
 		    return true;
 		}
 	    };
-	    futureList.add(bt);
+	    futureList.add(bt); // save the thread
 	}
+	/* Wait until the image was blurred vertically */
 	try {
 	    threadPool.invokeAll(futureList);
 	} catch (Exception err) {
-	    err.printStackTrace();
+	    throw new InterruptedException("Thread which blurs the image has been interrupted!");
 	} finally {
+	    WINDOW.repaint();
 	    futureList.clear(); // save the thread
 	}
 
@@ -236,13 +233,12 @@ public class Blur {
      * @throws InterruptedException
      */
     static void singleThreadedBlurring() throws InterruptedException {
-	WINDOW.setImage(IMAGE); // display the image
 
 	/* Dimensions of the image */
 	int width = IMAGE.getWidth();
 	int height = IMAGE.getHeight();
 
-	/* <--- BLUR HORIZONTALLY ---> */
+	/* <-------------- BLUR HORIZONTALLY --------------> */
 	for (int row = 0; row < width; row++) {
 	    for (int col = 0; col < height; col += SIZE)
 		IMAGE = IProc.HBlur(IMAGE, row, col);
@@ -250,7 +246,7 @@ public class Blur {
 	    refresh(row);
 	    Thread.sleep(DELAY); // transition delay
 	}
-	/* <--- BLUR VERTICALLY ---> */
+	/* <-------------- BLUR VERTICALLY --------------> */
 	for (int col = 0; col < height; col++) {
 	    for (int row = 0; row < width; row += SIZE)
 		IMAGE = IProc.VBlur(IMAGE, row, col);
@@ -258,6 +254,8 @@ public class Blur {
 	    refresh(col);
 	    Thread.sleep(DELAY); // transition delay
 	}
+
+	refresh(); // apply the last changes
     }
 
     /**
@@ -349,16 +347,18 @@ public class Blur {
      *                 the index of iteration
      */
     static void refresh(int iter) {
-	if (!SNAPPING) {
-	    WINDOW.setImage(IMAGE);
-	} else if (iter % SIZE == 0) {
-	    WINDOW.setImage(IMAGE);
+	if (!SNAPPING || iter % SIZE == 0) {
+	    refresh();
 	}
     }
 
+    static void refresh() {
+	WINDOW.setImage(IMAGE);
+    }
+
     /**
-     * Static class used to instantiate a callable instance which are used to split
-     * the procedure parallely.
+     * Static class used to instantiate a <code>Callable</code> instance which is
+     * used to split the procedure parallelly.
      * 
      */
     static abstract class BlurThread implements Callable<Boolean> {
