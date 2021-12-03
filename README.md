@@ -36,11 +36,11 @@ Options:
 Click <a href="https://www.youtube.com/watch?v=qZm8bn80-W8" target="_blank">here</a> to see Demonstration video on YouTube.  
 
 ### Here is an example of an image before processing:  
-![image](https://github.com/ADA-GWU/concurrency-sadigaxund/blob/main/demo/monalisa.jpg)  
+![image](https://github.com/ADA-GWU/concurrency-sadigaxund/blob/main/res/monalisa.jpg)  
 
 
 ### The image after processing:  
-![image](https://github.com/ADA-GWU/concurrency-sadigaxund/blob/main/demo/result.jpg)  
+![image](https://github.com/ADA-GWU/concurrency-sadigaxund/blob/main/res/result.jpg)  
  
 
 
